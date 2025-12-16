@@ -1,24 +1,8 @@
-# schemas.py
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel, EmailStr
 from datetime import datetime
 
-#########################################################################
-##### Uses pydantic for cache/dynamic objects; not referenced in DB #####
-#########################################################################
-
-#Base JWT AuthToken model
-class AuthToken(BaseModel):
-    id : str
-    username : str
-    email : str
-    role : Optional[str] = None
-    exp : Optional[int] = None
-
-    class Config:
-        extra = "allow"
-
-# User DTOs
+# --- USUÁRIOS ---
 class UserCreateDTO(BaseModel):
     username: str
     email: EmailStr
@@ -30,90 +14,113 @@ class UserReadDTO(BaseModel):
     username: str
     email: EmailStr
     phone_number: Optional[str] = None
+    is_admin: bool = False
 
-# Competition DTOs
+    class Config:
+        from_attributes = True
+
+class UserInternalDTO(UserReadDTO):
+    """
+    DTO EXCLUSIVO para uso interno (Backend <-> Interpreter).
+    Contém o hash da senha para validação de login.
+    NUNCA expor isso para o Frontend.
+    """
+
+    password: str
+
+
+# --- COMPETIÇÕES ---
 class CompetitionCreateDTO(BaseModel):
     name: str
     organizer: str
     invite_code: str
-    start_date: str
-    end_date: str
+    start_date: datetime
+    end_date: datetime
 
 class CompetitionReadDTO(BaseModel):
     id: str
     name: str
     organizer: str
+    start_date: datetime
+    end_date: datetime
+    status: str
+
+    class Config:
+        from_attributes = True
+
+class CompetitionJoinDTO(BaseModel):
+    user_id: str
     invite_code: str
-    start_date: str
-    end_date: str
 
-# Exercise DTOs
-class ExerciseCreateDTO(BaseModel):
-    link: str
-    name: str
-    score: int
-    difficulty: str
-    port: int
 
-class ExerciseReadDTO(BaseModel):
-    id: str
-    link: str
-    name: str
-    score: int
-    difficulty: str
-    port: int
-
-# Tag DTOs
-class TagCreateDTO(BaseModel):
-    type: str
-
-class TagReadDTO(BaseModel):
-    id: str
-    type: str
-
-# Team DTOs
+# --- TIMES ---
 class TeamCreateDTO(BaseModel):
     name: str
-    competition: str
-    creator: str
-    score: Optional[int] = 0
+    creator_id: str
 
 class TeamReadDTO(BaseModel):
     id: str
     name: str
-    competition: str
-    creator: str
     score: int
+    competition_id: str
 
-# Container DTOs
-class ContainerCreateDTO(BaseModel):
-    deadline: str
+    class Config:
+        from_attributes = True
 
-class ContainerReadDTO(BaseModel):
+class JoinTeamDTO(BaseModel):
+    user_id: str
+
+class ScoreboardEntryDTO(BaseModel):
+    rank: int
+    team_name: str
+    score: int
+    team_id: str
+
+
+# --- EXERCÍCIOS E INFRAESTRUTURA ---
+class ExerciseCreateDTO(BaseModel):
+    name: str
+    description: Optional[str] = None
+    category: str
+    difficulty: str
+    points: int
+    flag: str
+    image_tag: Optional[str] = None
+    is_active: bool = True
+
+class ExerciseReadDTO(BaseModel):
+    """
+    O que o ALUNO vê. Sem a flag, sem dados sensíveis de infra.
+    """
+
     id: str
-    deadline: str
+    name: str
+    description: Optional[str]
+    category: str
+    difficulty: str
+    points: int
+    solved_by_me: Optional[bool] = False 
 
-# Relationship DTOs
-class UserCompetitionCreateDTO(BaseModel):
-    user_id: str
+    class Config:
+        from_attributes = True
+
+class ExerciseConnectionDTO(BaseModel):
+    """
+    Dados retornados quando o aluno pede para conectar no desafio
+    """
+
+    has_container: bool
+    connection_command: Optional[str] = None
+    host: Optional[str] = None
+    port: Optional[int] = None
+
+
+# --- SOLUÇÕES (FLAGS) ---
+class SolveSubmitDTO(BaseModel):
+    flag: str
     competition_id: str
 
-class UserTeamCreateDTO(BaseModel):
-    user_id: str
-    team_id: str
-
-class TeamCompetitionCreateDTO(BaseModel):
-    team_id: str
-    competition_id: str
-
-class ExerciseTagCreateDTO(BaseModel):
-    exercise_id: str
-    tag_id: str
-
-class ExerciseCompetitionCreateDTO(BaseModel):
-    exercise_id: str
-    competition_id: str
-
-class ContainerCompetitionCreateDTO(BaseModel):
-    container_id: str
-    competition_id: str
+class SolveResponseDTO(BaseModel):
+    success: bool
+    message: str
+    points_awarded: int = 0
