@@ -1,44 +1,34 @@
 # Interpreter-Lycosidae
 
-Serviço backend do projeto **Lycosidae CTF**, responsável por abstrair a comunicação entre os componentes e o banco de dados **MariaDB**, utilizando **FastAPI** e **SQLAlchemy** como ORM.
+Serviço backend do projeto **Lycosidae CTF**, responsável pela lógica de negócio e pela abstração da comunicação com o banco de dados **MariaDB**, utilizando **FastAPI** e **SQLAlchemy**.
 
-O sistema expõe endpoints HTTPS que recebem requisições HTTP, interpretam as instruções e convertem em consultas padronizadas executadas diretamente no repositório de dados.
+O sistema adota uma **arquitetura modular baseada em Routers**, expondo endpoints organizados por domínio (Auth, Competitions, Exercises) para gerir o ciclo de vida dos desafios, equipes e submissões de flags com segurança reforçada.
 
 ## ✨ Funcionalidades Implementadas
 
-### 🔧 CRUD Completo
+### 🔧 Core & Segurança
 
-- **Usuários**: Registro, autenticação, gerenciamento de perfis
-- **Competições**: Criação, gerenciamento e controle de acesso
-- **Exercícios**: Cadastro e classificação por dificuldade
-- **Tags**: Sistema de categorização flexível
-- **Times**: Formação e gerenciamento de equipes
-- **Containers**: Controle de prazos e recursos
+- **Autenticação**: Registro e login para usuários da plataforma.
+- **Context Shielding**: Proteção contra submissão de flags cruzadas.
 
-### 🔗 Relacionamentos
+### 🏆 Gestão de Competições
 
-- **Usuário ↔ Competição**: Participação em competições
-- **Usuário ↔ Time**: Membro de equipes
-- **Time ↔ Competição**: Times em competições
-- **Exercício ↔ Tag**: Categorização de exercícios
-- **Exercício ↔ Competição**: Exercícios por competição
-- **Container ↔ Competição**: Recursos por competição
+- **Sistema de Convites**: Entrada em competições através de códigos únicos.
+- **Scoreboard em Tempo Real**: Ranking dinâmico de equipes ordenado por pontuação.
+- **Gestão de Equipes**: Criação, associação de membros e cálculo automático de *score* de equipe.
+
+### 💪 Jogabilidade (CTF)
+
+- **Distribuição de Exercícios**: Listagem de desafios filtrada por competição e estado de resolução.
+- **Validação de Flags**: Sistema transacional de submissão que valida a flag, o tempo e a unicidade da solução.
+- **Infraestrutura Dinâmica**: Endpoint dedicado para recuperar dados de conexão (IP/Porta) de desafios baseados em containers.
 
 ### 📊 Logs Estruturados
 
-- **Sistema de logging centralizado** em `app/logger.py`
-- **Rastreabilidade completa** de operações de banco
-- **Métricas de performance** (tempo de execução)
-- **Logs coloridos** para desenvolvimento
-- **Formato JSON** para produção
-
-### 📚 Documentação Automática
-
-- **Swagger UI** disponível em `/docs`
-- **ReDoc** disponível em `/redoc`
-- **Schemas completos** com validação
-- **Exemplos de request/response**
-- **Interface interativa** para testes
+- **Sistema de logging centralizado** em `app/logger.py`.
+- **Métricas de performance** (tempo de resposta dos endpoints).
+- **Logs coloridos** para desenvolvimento e **JSON** para produção.
+- **Rastreabilidade** de erros críticos e tentativas de *bypass*.
 
 ---
 
@@ -46,7 +36,7 @@ O sistema expõe endpoints HTTPS que recebem requisições HTTP, interpretam as 
 
 ### Pré-requisitos
 
-- Python 3.8+
+- Python 3.9+
 - MariaDB/MySQL
 - Docker (opcional)
 
@@ -62,83 +52,57 @@ pip install -r requirements.txt
 
 # Configure as variáveis de ambiente
 cp .env.example .env
-# Edite o arquivo .env com suas configurações
+# IMPORTANTE: Defina a variável PASS_SALT no .env para a segurança das senhas
 
 # Execute o servidor
 ./uvicorn.sh
+
 ```
 
 ### Acessar a Documentação
 
-- **Swagger UI**: <http://localhost:8000/docs>
-- **ReDoc**: <http://localhost:8000/redoc>
-- **API Base**: <http://localhost:8000>
+* **Swagger UI**: [http://localhost:8000/docs](https://www.google.com/search?q=http://localhost:8000/docs)
+* **ReDoc**: [http://localhost:8000/redoc](https://www.google.com/search?q=http://localhost:8000/redoc)
+* **Health Check**: [http://localhost:8000/](https://www.google.com/search?q=http://localhost:8000/)
 
 ---
 
 ## 📡 Endpoints da API
 
-### 👤 Usuários
+A API foi reorganizada em prefixos por domínio.
 
-- `POST /route/register` - Registro de usuário
-- `GET /route/users/{user_id}` - Buscar usuário
-- `PUT /route/users/{user_id}` - Atualizar usuário
-- `DELETE /route/users/{user_id}` - Deletar usuário
+### 🔐 Autenticação (`/auth`)
 
-### 🏆 Competições
+* `POST /auth/register` - Registro de novo utilizador (com validação de unicidade).
+* `GET /auth/profile/{user_id}` - Consultar perfil público de um utilizador.
+* `GET /auth/users/email/{email}` - Consulta de credenciais para login.
 
-- `POST /route/competitions` - Criar competição
-- `GET /route/competitions/{competition_id}` - Buscar competição
-- `GET /route/competitions/invite/{invite_code}` - Buscar por código
-- `PUT /route/competitions/{competition_id}` - Atualizar competição
-- `DELETE /route/competitions/{competition_id}` - Deletar competição
+### 🏆 Competições (`/competitions`)
 
-### 💪 Exercícios
+* `GET /competitions` - Listar todas as competições.
+* `POST /competitions` - Criar nova competição.
+* `GET /competitions/{comp_id}` - Consultar detalhes de uma competição.
+* `POST /competitions/{comp_id}/join` - Entrar numa competição (valida `invite_code`).
+* `GET /competitions/{comp_id}/teams` - Listar equipes de uma competição.
+* `POST /competitions/{comp_id}/teams` - Criar nova equipe.
+* `POST /competitions/teams/{team_id}/join` - Juntar-se a uma equipe existente.
+* `GET /competitions/{comp_id}/scoreboard` - Obter o placar atualizado.
 
-- `POST /route/exercises` - Criar exercício
-- `GET /route/exercises/{exercise_id}` - Buscar exercício
-- `PUT /route/exercises/{exercise_id}` - Atualizar exercício
-- `DELETE /route/exercises/{exercise_id}` - Deletar exercício
+### 💪 Exercícios (`/exercises`)
 
-### 🏷️ Tags
-
-- `POST /route/tags` - Criar tag
-- `GET /route/tags/{tag_id}` - Buscar tag
-- `GET /route/tags/type/{tag_type}` - Buscar por tipo
-- `PUT /route/tags/{tag_id}` - Atualizar tag
-- `DELETE /route/tags/{tag_id}` - Deletar tag
-
-### 👥 Times
-
-- `POST /route/teams` - Criar time
-- `GET /route/teams/{team_id}` - Buscar time
-- `PUT /route/teams/{team_id}` - Atualizar time
-- `DELETE /route/teams/{team_id}` - Deletar time
-
-### 📦 Containers
-
-- `POST /route/containers` - Criar container
-- `GET /route/containers/{container_id}` - Buscar container
-- `PUT /route/containers/{container_id}` - Atualizar container
-- `DELETE /route/containers/{container_id}` - Deletar container
-
-### 🔗 Endpoints de Relacionamentos
-
-- `POST /route/user-competitions` - Relacionar usuário-competição
-- `POST /route/user-teams` - Relacionar usuário-time
-- `POST /route/team-competitions` - Relacionar time-competição
-- `POST /route/exercise-tags` - Relacionar exercício-tag
-- `DELETE /route/exercise-tags/{exercise_id}/{tag_id}` - Remover relação
-- `POST /route/exercise-competitions` - Relacionar exercício-competição
-- `POST /route/container-competitions` - Relacionar container-competição
+* `POST /exercises` - Criar exercício na biblioteca global.
+* `POST /exercises/{ex_id}/link-competition/{comp_id}` - Associar exercício a uma competição.
+* `GET /exercises/competition/{comp_id}` - Listar exercícios ativos (inclui status de resolução).
+* `POST /exercises/{ex_id}/submit` - Submeter flag (valida time, competição e exercício).
+* `GET /exercises/{ex_id}/connection` - Obter dados de conexão (Host/Porta) do container.
 
 ---
 
 ## 🏗️ Arquitetura de Execução
 
-- Orquestração feita por repositório auxiliar com script que inicializa todos os containers.
-- Arquivo `.env` centralizado em outro diretório (não deve ser duplicado).
-- Conexão ao banco controlada pela variável `DATABASE_URL`.
+* **Modularidade**: A aplicação é iniciada em `app/main.py`, que agrega os routers definidos em `app/routers/`.
+* **Configuração**: As variáveis de ambiente (como `DATABASE_URL` e `PASS_SALT`) controlam o comportamento sem alterar o código.
+* **Base de Dados**: Sessões geridas via `Depends(get_db)` garantindo o fecho correto das conexões.
 
 ---
 
@@ -146,25 +110,23 @@ cp .env.example .env
 
 ### Tabelas Principais
 
-| Tabela | Campos | Descrição |
-|--------|--------|-----------|
-| **Users** | username, email, password, phone_number | Usuários do sistema |
-| **Competitions** | name, organizer, invite_code, start_date, end_date | Competições CTF |
-| **Exercises** | link, name, score, difficulty | Exercícios/Desafios |
-| **Tags** | type, id | Categorização de exercícios |
-| **Teams** | name, competition, creator, score | Equipes participantes |
-| **Containers** | id, deadline | Recursos com prazo |
+| Tabela | Campos Principais | Descrição |
+| --- | --- | --- |
+| **Users** | username, email, password | Utilizadores do sistema |
+| **Competitions** | name, organizer, invite_code, status | Eventos CTF |
+| **Teams** | name, score, competition_id, creator_id | Equipes de cada competição |
+| **Exercises** | name, description, category, difficulty, flag, points, image_tag | Desafios/Problemas com tag do container Docker |
+| **Solves** | submission_content, user_id, team_id, exercise_id, points_awarded | Registro de soluções válidas |
+| **Containers** | exercise_id, container_docker_id, image_tag, port_public, connection_command | Dados de conexão da infraestrutura |
+| **Tags** | type | Tags de classificação dos exercícios |
 
 ### Tabelas de Relacionamento
 
 | Tabela | Relaciona | Descrição |
-|--------|-----------|-----------|
-| **user_competitions** | Users ↔ Competitions | Participação em competições |
-| **user_teams** | Users ↔ Teams | Membros de equipes |
-| **team_competitions** | Teams ↔ Competitions | Times em competições |
-| **exercise_tags** | Exercises ↔ Tags | Categorização de exercícios |
-| **exercise_competitions** | Exercises ↔ Competitions | Exercícios por competição |
-| **container_competitions** | Containers ↔ Competitions | Recursos por competição |
+| --- | --- | --- |
+| **user_competitions** | Users ↔ Competitions | Registro de participação |
+| **user_teams** | Users ↔ Teams | Membros das equipes |
+| **exercise_competitions** | Exercises ↔ Competitions | Exercícios disponíveis no evento |
 
 ---
 
@@ -174,69 +136,63 @@ cp .env.example .env
 
 ```text
 app/
-├── main.py              # Aplicação principal FastAPI
-├── database.py          # Configuração do banco de dados
-├── models.py            # Modelos SQLAlchemy
-├── schemas.py           # DTOs Pydantic
-├── routers.py           # Endpoints da API
-├── dbutils_mysql.py     # Funções de banco de dados
-└── logger.py            # Sistema de logging estruturado
+├── main.py              # Entrypoint e agregação de routers
+├── database.py          # Configuração da sessão de BD
+├── logger.py            # Logging estruturado
+├── models.py            # Modelos ORM (SQLAlchemy)
+├── schemas.py           # DTOs para validação (Pydantic)
+└── routers/             # Módulos de lógica de negócio
+    ├── auth.py          # Gestão de utilizadores
+    ├── competitions.py  # Competições, Teams e Scoreboard
+    └── exercises.py     # Desafios e Submissões
+
 ```
 
 ### Logs Estruturados
 
-- **Desenvolvimento**: Logs coloridos no console
-- **Produção**: Logs em formato JSON
-- **Rastreabilidade**: IDs de transação e contexto
-- **Performance**: Tempo de execução de operações
-- **Erros**: Stack traces completos com contexto
+* **Desenvolvimento**: Logs coloridos no console para leitura fácil.
+* **Produção**: Logs em JSON para ingestão por ferramentas de monitorização.
+* **Contexto**: `request_id` e tempos de execução são registrados automaticamente.
 
-### Validação de Dados
+### Segurança e Validação
 
-- **Pydantic schemas** para validação de entrada
-- **Validação automática** de tipos e formatos
-- **Mensagens de erro** claras e específicas
-- **Sanitização** de dados de entrada
-
-### Segurança
-
-- **Hash de senhas** com SHA-256 + salt
-- **Validação de relacionamentos** antes de criação
-- **Controle de duplicatas** em relacionamentos
-- **Tratamento de erros** padronizado
+* **Pydantic Schemas**: Todas as entradas (`payloads`) são estritamente tipadas.
+* **Hashing**: As senhas nunca são armazenadas em texto simples.
+* **Validação de Negócio**: Verificações lógicas (ex: se o utilizador pertence à equipe que está a tentar pontuar) são feitas antes de qualquer escrita no banco.
 
 ---
 
 ## 🧪 Testando a API
 
-### Exemplo de Requisição
+### Exemplo de Requisição (Novos Endpoints)
 
 ```bash
-# Registrar um usuário
-curl -X POST "http://localhost:8000/route/register" \
+# Registrar um utilizador
+curl -X POST "http://localhost:8000/auth/register" \
   -H "Content-Type: application/json" \
   -d '{
-    "username": "testuser",
-    "email": "test@example.com",
-    "password": "password123",
-    "phone_number": "+1234567890"
+    "username": "aluno_test",
+    "email": "aluno@insper.edu.br",
+    "password": "senha_segura",
+    "phone_number": "+551199999999"
   }'
 
-# Criar uma competição
-curl -X POST "http://localhost:8000/route/competitions" \
+# Criar uma competição (Admin)
+curl -X POST "http://localhost:8000/competitions/" \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "CTF 2024",
+    "name": "Insper CTF 2025",
     "organizer": "Lycosidae Team",
-    "invite_code": "CTF2024",
-    "start_date": "2024-01-01T00:00:00",
-    "end_date": "2024-01-31T23:59:59"
+    "invite_code": "INSPER2025",
+    "start_date": "2025-01-01T10:00:00",
+    "end_date": "2025-01-02T22:00:00"
   }'
+
 ```
 
 ### Documentação Interativa
 
-Acesse <http://localhost:8000/docs> para testar todos os endpoints diretamente no navegador.
+Acesse [http://localhost:8000/docs](https://www.google.com/search?q=http://localhost:8000/docs) para testar todos os endpoints, incluindo os novos fluxos de submissão e scoreboard.
 
 ---
 
@@ -244,20 +200,8 @@ Acesse <http://localhost:8000/docs> para testar todos os endpoints diretamente n
 
 ### Padrões de Código
 
-- **Docstrings** no formato `"""Explicação"""` no início de cada função
-- **Logs estruturados** para todas as operações de banco
-- **Validação de dados** com Pydantic schemas
-- **Tratamento de erros** padronizado
-- **Comentários limpos** sem código desnecessário
-
-### Estrutura de Commits
-
-```text
-feat: adiciona nova funcionalidade
-fix: corrige bug
-docs: atualiza documentação
-refactor: refatora código
-test: adiciona testes
-```
+* **Docstrings** explicativas no início de cada função de rota.
+* **Separação de Responsabilidades**: Lógica de banco no router ou controller, modelos em `models.py`.
+* **Commits Semânticos**: Utilize prefixos como `feat:`, `fix:`, `refactor:`.
 
 ---
