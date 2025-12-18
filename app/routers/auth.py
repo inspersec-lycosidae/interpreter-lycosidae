@@ -28,6 +28,17 @@ async def get_user(user_id: str, db: Session = Depends(get_db)):
     if not user: raise HTTPException(404, "Usuário não encontrado")
     return user
 
+@router.get("/user/email/{email}", response_model=UserInternalDTO)
+async def get_user_by_email_internal(email: str, db: Session = Depends(get_db)):
+    """
+    Endpoint CRÍTICO para o Backend.
+    Retorna os dados internos (incluindo hash da senha) para validação de login.
+    """
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+    return user
+
 @router.post("/register", response_model=UserReadDTO, status_code=201)
 async def register(payload: UserCreateDTO, db: Session = Depends(get_db)):
     if db.query(User).filter(User.email == payload.email).first():
