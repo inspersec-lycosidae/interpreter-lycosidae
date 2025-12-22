@@ -10,6 +10,14 @@ from app.logger import get_structured_logger
 logger = get_structured_logger("teams_router")
 router = APIRouter(prefix="/teams", tags=["teams"])
 
+@router.get("/", response_model=List[TeamReadDTO])
+async def list_teams(db: Session = Depends(get_db)):
+    teams = db.query(Team).all()
+    for team in teams:
+        team.members_ids = [user.id for user in team.users]
+
+    return teams
+
 @router.get("/{team_id}", response_model=TeamReadDTO)
 async def get_team(team_id: str, db: Session = Depends(get_db)):
     team = db.query(Team).filter(Team.id == team_id).first()
@@ -20,8 +28,11 @@ async def get_team(team_id: str, db: Session = Depends(get_db)):
     
     return team
 
-@router.post("/competition/{comp_id}", response_model=TeamReadDTO, status_code=201)
+@router.post("/{comp_id}", response_model=TeamReadDTO, status_code=201)
 async def create_team(comp_id: str, payload: TeamCreateDTO, db: Session = Depends(get_db)):
+    """
+    Um time só pode existir dentro de uma competição.
+    """
     comp = db.query(Competition).filter(Competition.id == comp_id).first()
     user = db.query(User).filter(User.id == payload.creator_id).first()
     
@@ -29,7 +40,6 @@ async def create_team(comp_id: str, payload: TeamCreateDTO, db: Session = Depend
         raise HTTPException(404, "Competição ou Criador não encontrado")
 
     new_team = Team(name=payload.name, creator_id=user.id)
-    # Adiciona o time à competição e o criador ao time (Many-to-Many)
     comp.teams.append(new_team)
     new_team.users.append(user)
     

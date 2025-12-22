@@ -18,7 +18,6 @@ class TeamReadDTO(TeamBase):
 
 class JoinTeamDTO(BaseModel):
     users_id: str
-    teams_id: Optional[str] = None
 
 class TeamUpdateDTO(BaseModel):
     name: Optional[str] = None

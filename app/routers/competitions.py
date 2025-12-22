@@ -29,6 +29,9 @@ async def list_competition_teams(comp_id: str, db: Session = Depends(get_db)):
     if not comp:
         raise HTTPException(status_code=404, detail="Competição não encontrada")
 
+    for team in comp.teams:
+        team.members_ids = [user.id for user in team.users]
+
     return comp.teams
 
 @router.get("/{comp_id}/exercises", response_model=List[ExerciseReadDTO])

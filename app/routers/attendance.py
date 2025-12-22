@@ -19,6 +19,6 @@ async def record_attendance(payload: AttendanceCreateDTO, db: Session = Depends(
     db.refresh(new_att)
     return new_att
 
-@router.get("/user/{user_id}", response_model=List[AttendanceReadDTO])
+@router.get("/{user_id}", response_model=List[AttendanceReadDTO])
 async def get_user_attendance(user_id: str, db: Session = Depends(get_db)):
     return db.query(Attendance).filter(Attendance.users_id == user_id).all()

@@ -10,7 +10,7 @@ from app.logger import get_structured_logger
 logger = get_structured_logger("solves_router")
 router = APIRouter(prefix="/solves", tags=["solves"])
 
-@router.get("/user/{user_id}", response_model=List[SolveReadDTO])
+@router.get("/{user_id}", response_model=List[SolveReadDTO])
 async def get_user_solves(user_id: str, db: Session = Depends(get_db)):
     return db.query(Solve).filter(Solve.users_id == user_id).all()
 

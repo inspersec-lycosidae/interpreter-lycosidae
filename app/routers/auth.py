@@ -28,7 +28,7 @@ async def get_user(user_id: str, db: Session = Depends(get_db)):
     if not user: raise HTTPException(404, "Usuário não encontrado")
     return user
 
-@router.get("/user/email/{email}", response_model=UserInternalDTO)
+@router.get("/user/{email}", response_model=UserInternalDTO)
 async def get_user_by_email_internal(email: str, db: Session = Depends(get_db)):
     """
     Endpoint CRÍTICO para o Backend.
