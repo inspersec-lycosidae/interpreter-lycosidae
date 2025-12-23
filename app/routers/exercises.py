@@ -29,7 +29,7 @@ async def create_exercise(payload: ExerciseCreateDTO, db: Session = Depends(get_
     logger.info("Novo exercício criado", id=new_ex.id, name=new_ex.name)
     return new_ex
 
-@router.post("/{ex_id}/link-competition/{comp_id}")
+@router.post("/{ex_id}/competition/{comp_id}")
 async def link_exercise_to_competition(ex_id: str, comp_id: str, db: Session = Depends(get_db)):
     ex = db.query(Exercise).filter(Exercise.id == ex_id).first()
     comp = db.query(Competition).filter(Competition.id == comp_id).first()

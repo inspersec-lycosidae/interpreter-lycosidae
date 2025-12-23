@@ -2,7 +2,6 @@ from pydantic import BaseModel
 from datetime import datetime
 
 class AttendanceCreateDTO(BaseModel):
-    users_id: str
     competitions_id: str
 
 class AttendanceReadDTO(BaseModel):

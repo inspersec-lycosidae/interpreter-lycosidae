@@ -4,7 +4,7 @@ from typing import List
 
 from app.database import get_db
 from app.models import Container
-from app.schemas.container import ContainerReadDTO, ContainerInternalDTO
+from app.schemas.container import ContainerReadDTO, ContainerInternalDTO, ContainerCreateDTO
 from app.logger import get_structured_logger
 
 logger = get_structured_logger("containers_router")
@@ -40,13 +40,13 @@ async def get_container_by_exercise(ex_id: str, db: Session = Depends(get_db)):
     return cont
 
 @router.post("/", response_model=ContainerReadDTO, status_code=201)
-async def create_container(payload: ContainerInternalDTO, exercises_id: str, db: Session = Depends(get_db)):
+async def create_container(payload: ContainerCreateDTO, db: Session = Depends(get_db)):
     """
     Salva os dados de um container que o Orchester acabou de subir.
     """
 
     new_cont = Container(
-        exercises_id=exercises_id,
+        exercises_id=payload.exercises_id,
         docker_id=payload.docker_id,
         image_tag=payload.image_tag,
         port=payload.port,

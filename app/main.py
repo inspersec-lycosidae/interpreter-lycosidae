@@ -11,8 +11,7 @@ from app.logger import (
 # Routers
 from app.routers import (
     auth, 
-    competitions, 
-    teams, 
+    competitions,
     scoreboard, 
     exercises, 
     containers, 
@@ -32,7 +31,7 @@ app_logger = get_structured_logger("main")
 app = FastAPI(
     title="Lycosidae Interpreter API",
     description="Camada de persistência e abstração de dados para a plataforma Lycosidae CTF",
-    version="1.0.1"
+    version="1.1.0"
 )
 
 # CORS
@@ -47,7 +46,6 @@ app.add_middleware(
 # Registo de todos os módulos da API
 app.include_router(auth.router)
 app.include_router(competitions.router)
-app.include_router(teams.router)
 app.include_router(scoreboard.router)
 app.include_router(exercises.router)
 app.include_router(containers.router)
@@ -75,7 +73,7 @@ def read_root():
         "service": "lycosidae-interpreter",
         "version": "1.0.0",
         "active_modules": [
-            "auth", "competitions", "teams", "scoreboard", 
+            "auth", "competitions", "scoreboard", 
             "exercises", "containers", "solves", "tags", "attendance"
         ]
     }

@@ -9,9 +9,9 @@ from app.schemas.attendance import AttendanceCreateDTO, AttendanceReadDTO
 router = APIRouter(prefix="/attendance", tags=["attendance"])
 
 @router.post("/", response_model=AttendanceReadDTO, status_code=201)
-async def record_attendance(payload: AttendanceCreateDTO, db: Session = Depends(get_db)):
+async def record_attendance(payload: AttendanceCreateDTO, users_id: str, db: Session = Depends(get_db)):
     new_att = Attendance(
-        users_id=payload.users_id,
+        users_id=users_id,
         competitions_id=payload.competitions_id
     )
     db.add(new_att)

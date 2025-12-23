@@ -5,7 +5,7 @@ from typing import List
 from app.database import get_db
 from app.models import Competition, User
 from app.schemas.competition import CompetitionCreateDTO, CompetitionReadDTO, CompetitionJoinDTO, CompetitionUpdateDTO
-from app.schemas.team import TeamReadDTO
+from app.schemas.user import UserReadDTO
 from app.schemas.exercise import ExerciseReadDTO
 from app.logger import get_structured_logger
 
@@ -23,21 +23,42 @@ async def get_competition(comp_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Competição não encontrada")
     return comp
 
-@router.get("/{comp_id}/teams", response_model=List[TeamReadDTO])
-async def list_competition_teams(comp_id: str, db: Session = Depends(get_db)):
+@router.get("/{comp_id}/participants", response_model=List[UserReadDTO])
+async def list_competition_participants(comp_id: str, db: Session = Depends(get_db)):
+    """
+    Lista todos os usuários (participantes individuais) inscritos em uma competição.
+    """
     comp = db.query(Competition).filter(Competition.id == comp_id).first()
     if not comp:
         raise HTTPException(status_code=404, detail="Competição não encontrada")
 
-    for team in comp.teams:
-        team.members_ids = [user.id for user in team.users]
+    return comp.users # Retorna a lista de usuários diretamente
 
-    return comp.teams
+@router.post("/join")
+async def join_competition(payload: CompetitionJoinDTO, user_id: str, db: Session = Depends(get_db)):
+    """
+    Permite que um usuário entre em uma competição individualmente usando apenas o código de convite.
+    """
+    comp = db.query(Competition).filter(Competition.invite_code == payload.invite_code).first()
+    user = db.query(User).filter(User.id == user_id).first()
+    
+    if not comp:
+        raise HTTPException(status_code=404, detail="Código de convite inválido ou competição inexistente")
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+    
+    if user not in comp.users:
+        comp.users.append(user)
+        db.commit()
+        logger.info(f"Usuário {user.username} entrou na competição {comp.name}")
+        
+    return {"message": f"Você entrou na competição {comp.name} com sucesso!"}
 
 @router.get("/{comp_id}/exercises", response_model=List[ExerciseReadDTO])
 async def list_competition_exercises(comp_id: str, db: Session = Depends(get_db)):
     """
-    Lista todos os exercícios vinculados a uma competição específica
+    Lista todos os exercícios vinculados a uma competição específica.
     """
     comp = db.query(Competition).filter(Competition.id == comp_id).first()
     if not comp:

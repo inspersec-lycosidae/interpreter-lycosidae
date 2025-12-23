@@ -12,6 +12,17 @@ class ContainerReadDTO(BaseModel):
     class Config:
         from_attributes = True
 
+class ContainerCreateDTO(BaseModel):
+    """
+    Usado pelo Orchester para reportar o status do container criado.
+    """
+
+    exercises_id: str
+    docker_id: str
+    image_tag: str
+    port: int
+    connection: str
+
 class ContainerInternalDTO(BaseModel):
     """
     Usado pelo Orchester para reportar o status do container criado.

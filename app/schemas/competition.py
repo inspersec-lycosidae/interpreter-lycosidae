@@ -8,7 +8,6 @@ class CompetitionBase(BaseModel):
     end_date: datetime
 
 class CompetitionCreateDTO(CompetitionBase):
-    organizer: str
     invite_code: str
 
 class CompetitionUpdateDTO(BaseModel):
@@ -19,7 +18,6 @@ class CompetitionUpdateDTO(BaseModel):
 
 class CompetitionReadDTO(CompetitionBase):
     id: str
-    organizer: str
     invite_code: str
     status: str
 
