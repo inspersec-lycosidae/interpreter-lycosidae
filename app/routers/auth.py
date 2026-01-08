@@ -43,6 +43,8 @@ async def get_user_by_email_internal(email: str, db: Session = Depends(get_db)):
 async def register(payload: UserCreateDTO, db: Session = Depends(get_db)):
     if db.query(User).filter(User.email == payload.email).first():
         raise HTTPException(400, "E-mail já cadastrado")
+    elif db.query(User).filter(User.username == payload.username).first():
+        raise HTTPException(400, "User já cadastrado")
     
     new_user = User(
         name=payload.name,
