@@ -23,6 +23,13 @@ async def get_competition(comp_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Competição não encontrada")
     return comp
 
+@router.get("/code/{invite_code}", response_model=CompetitionReadDTO)
+async def get_competition_by_code(invite_code: str, db: Session = Depends(get_db)):
+    comp = db.query(Competition).filter(Competition.invite_code == invite_code).first()
+    if not comp:
+        raise HTTPException(status_code=404, detail="Competição não encontrada")
+    return comp
+
 @router.get("/{comp_id}/participants", response_model=List[UserReadDTO])
 async def list_competition_participants(comp_id: str, db: Session = Depends(get_db)):
     """
