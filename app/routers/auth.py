@@ -58,21 +58,39 @@ async def register(payload: UserCreateDTO, db: Session = Depends(get_db)):
     db.refresh(new_user)
     return new_user
 
-@router.patch("/profile/{user_id}", response_model=UserReadDTO)
+@router.put("/profile/{user_id}", response_model=UserReadDTO)
 async def update_user(user_id: str, payload: UserUpdateDTO, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id).first()
-    if not user: raise HTTPException(404, "Usuário não encontrado")
+    if not user: 
+      raise HTTPException(404, "Usuário não encontrado")
     
     update_data = payload.model_dump(exclude_unset=True)
-    if "password" in update_data:
+
+    if update_data.get("password"): 
         update_data["password"] = pass_hasher(update_data["password"])
+    else:
+        update_data.pop("password", None)
         
+    if "email" in update_data:
+      email_exists = db.query(User).filter(User.email == update_data["email"], User.id != user_id).first()
+      if email_exists:
+        raise HTTPException(400, "E-mail já está em uso")
+
+    if "username" in update_data:
+      username_exists = db.query(User).filter(User.username == update_data["username"], User.id != user_id).first()
+      if username_exists:
+        raise HTTPException(400, "Username já está em uso")
+
     for key, value in update_data.items():
-        setattr(user, key, value)
+      setattr(user, key, value)
     
-    db.commit()
-    db.refresh(user)
-    return user
+    try:
+      db.commit()
+      db.refresh(user)
+      return user
+    except Exception as e:
+      db.rollback()
+      raise HTTPException(500, "Erro interno ao atualizar o perfil")
 
 @router.delete("/profile/{user_id}", status_code=204)
 async def delete_user(user_id: str, db: Session = Depends(get_db)):

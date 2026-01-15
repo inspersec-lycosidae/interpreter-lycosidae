@@ -13,6 +13,7 @@ class UserCreateDTO(UserBase):
 class UserUpdateDTO(BaseModel):
     name: Optional[str] = None
     surname: Optional[str] = None
+    username: Optional[str] = None
     email: Optional[EmailStr] = None
     password: Optional[str] = None
 
