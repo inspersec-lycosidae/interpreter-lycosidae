@@ -9,6 +9,7 @@ class CompetitionBase(BaseModel):
 
 class CompetitionCreateDTO(CompetitionBase):
     invite_code: str
+    status: str
 
 class CompetitionUpdateDTO(BaseModel):
     name: Optional[str] = None

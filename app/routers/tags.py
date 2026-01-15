@@ -23,6 +23,17 @@ async def create_tag(payload: TagCreateDTO, db: Session = Depends(get_db)):
     db.refresh(new_tag)
     return new_tag
 
+@router.patch("/{tag_id}", response_model=TagReadDTO)
+async def update_tag(tag_id: str, payload: TagCreateDTO, db: Session = Depends(get_db)):
+    tag = db.query(Tag).filter(Tag.id == tag_id).first()
+    if not tag:
+        raise HTTPException(status_code=404, detail="Tag não encontrada")
+    
+    tag.name = payload.name
+    db.commit()
+    db.refresh(tag)
+    return tag
+
 @router.delete("/{tag_id}", status_code=204)
 async def delete_tag(tag_id: str, db: Session = Depends(get_db)):
     tag = db.query(Tag).filter(Tag.id == tag_id).first()

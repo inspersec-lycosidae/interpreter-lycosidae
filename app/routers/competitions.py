@@ -78,7 +78,7 @@ async def create_competition(payload: CompetitionCreateDTO, db: Session = Depend
     if db.query(Competition).filter(Competition.invite_code == payload.invite_code).first():
         raise HTTPException(status_code=400, detail="Invite code já existe")
 
-    new_comp = Competition(**payload.model_dump(), status="created")
+    new_comp = Competition(**payload.model_dump())
     db.add(new_comp)
     db.commit()
     db.refresh(new_comp)

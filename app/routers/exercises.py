@@ -5,6 +5,7 @@ from typing import List, Optional
 from app.database import get_db
 from app.models import Exercise, Tag, Competition
 from app.schemas.exercise import ExerciseCreateDTO, ExerciseReadDTO, ExerciseUpdateDTO, ExerciseAdminReadDTO
+from app.schemas.competition import CompetitionReadDTO
 from app.logger import get_structured_logger
 
 logger = get_structured_logger("exercises_router")
@@ -74,3 +75,39 @@ async def delete_exercise(ex_id: str, db: Session = Depends(get_db)):
     db.delete(ex)
     db.commit()
     return None
+
+@router.get("/{ex_id}/competitions", response_model=List[CompetitionReadDTO])
+async def list_exercise_competitions(ex_id: str, db: Session = Depends(get_db)):
+    """Lista todas as competições às quais um exercício está vinculado."""
+    ex = db.query(Exercise).filter(Exercise.id == ex_id).first()
+    if not ex:
+        raise HTTPException(status_code=404, detail="Exercício não encontrado")
+    return ex.competitions
+
+@router.delete("/{ex_id}/competition/{comp_id}")
+async def unlink_exercise_from_competition(ex_id: str, comp_id: str, db: Session = Depends(get_db)):
+    """Remove o vínculo entre um exercício e uma competição."""
+    ex = db.query(Exercise).filter(Exercise.id == ex_id).first()
+    comp = db.query(Competition).filter(Competition.id == comp_id).first()
+    
+    if not ex or not comp:
+        raise HTTPException(404, "Exercício ou Competição não encontrados")
+    
+    if ex in comp.exercises:
+        comp.exercises.remove(ex)
+        db.commit()
+    return {"message": "Vínculo removido com sucesso"}
+
+@router.delete("/{ex_id}/tags/{tag_id}")
+async def unlink_exercise_from_tag(ex_id: str, tag_id: str, db: Session = Depends(get_db)):
+    """Remove o vínculo entre um exercício e uma tag."""
+    ex = db.query(Exercise).filter(Exercise.id == ex_id).first()
+    tag = db.query(Tag).filter(Tag.id == tag_id).first()
+    
+    if not ex or not tag:
+        raise HTTPException(404, "Exercício ou Tag não encontrados")
+    
+    if tag in ex.tags:
+        ex.tags.remove(tag)
+        db.commit()
+    return {"message": "Tag desvinculada com sucesso"}
