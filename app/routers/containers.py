@@ -40,13 +40,17 @@ async def get_container_by_exercise(ex_id: str, db: Session = Depends(get_db)):
     return cont
 
 @router.post("/", response_model=ContainerReadDTO, status_code=201)
-async def create_container(payload: ContainerCreateDTO, db: Session = Depends(get_db)):
+async def create_container(exercises_id: str, payload: ContainerCreateDTO, db: Session = Depends(get_db)):
     """
     Salva os dados de um container que o Orchester acabou de subir.
     """
+    from app.models import Exercise
+    ex_exists = db.query(Exercise).filter(Exercise.id == exercises_id).first()
+    if not ex_exists:
+        raise HTTPException(status_code=404, detail="Exercício não encontrado para este container")
 
     new_cont = Container(
-        exercises_id=payload.exercises_id,
+        exercises_id=exercises_id,
         docker_id=payload.docker_id,
         image_tag=payload.image_tag,
         port=payload.port,
@@ -56,6 +60,8 @@ async def create_container(payload: ContainerCreateDTO, db: Session = Depends(ge
     db.add(new_cont)
     db.commit()
     db.refresh(new_cont)
+    
+    logger.info(f"Container registrado no banco: {new_cont.id} para o exercício {exercises_id}")
     return new_cont
 
 @router.delete("/{container_id}", status_code=204)

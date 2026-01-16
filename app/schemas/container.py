@@ -16,12 +16,12 @@ class ContainerCreateDTO(BaseModel):
     """
     Usado pelo Orchester para reportar o status do container criado.
     """
-
-    exercises_id: str
     docker_id: str
     image_tag: str
     port: int
     connection: str
+    is_active: bool = True
+    exercises_id: Optional[str] = None
 
 class ContainerInternalDTO(BaseModel):
     """

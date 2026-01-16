@@ -1,207 +1,74 @@
-# Interpreter-Lycosidae
+# Lycosidae Interpreter API
 
-Serviço backend do projeto **Lycosidae CTF**, responsável pela lógica de negócio e pela abstração da comunicação com o banco de dados **MariaDB**, utilizando **FastAPI** e **SQLAlchemy**.
+O **Lycosidae Interpreter** é o componente central de persistência e abstração de dados da plataforma Lycosidae CTF. Ele atua como uma camada intermediária entre o **Backend (Gateway)** e o banco de dados **MariaDB**, garantindo que toda a lógica de acesso a dados seja centralizada e segura.
 
-O sistema adota uma **arquitetura modular baseada em Routers**, expondo endpoints organizados por domínio (Auth, Competitions, Exercises) para gerir o ciclo de vida dos desafios, equipes e submissões de flags com segurança reforçada.
+Esta API foi desenhada para ser resiliente e escalável, servindo como a "fonte da verdade" para o estado das competições, usuários e exercícios.
 
-## ✨ Funcionalidades Implementadas
+## 🚀 Funcionalidades Principais
 
-### 🔧 Core & Segurança
+O Interpreter gerencia os seguintes módulos do ecossistema:
 
-- **Autenticação**: Registro e login para usuários da plataforma.
-- **Context Shielding**: Proteção contra submissão de flags cruzadas.
+* **Gestão de Identidade (`auth`)**: Persistência de perfis de usuários e credenciais.
+* **Orquestração de Competições (`competitions`)**: Gerenciamento de eventos de CTF e seus participantes.
+* **Repositório de exercícios (`exercises`)**: Cadastro e metadados de exercícios técnicos.
+* **Controle de Infraestrutura (`containers`)**: Mapeamento de instâncias Docker para exercícios específicos.
+* **Pontuação em Tempo Real (`scoreboard` & `solves`)**: Registro de submissões de flags e cálculo dinâmico de ranking.
+* **Gestão de Engajamento (`attendance`)**: Registro de presença de alunos em atividades da entidade.
+* **Taxonomia (`tags`)**: Organização de conteúdos por categorias e níveis de dificuldade.
 
-### 🏆 Gestão de Competições
+## 🛠️ Stack Tecnológica
 
-- **Sistema de Convites**: Entrada em competições através de códigos únicos.
-- **Scoreboard em Tempo Real**: Ranking dinâmico de equipes ordenado por pontuação.
-- **Gestão de Equipes**: Criação, associação de membros e cálculo automático de *score* de equipe.
+* **Linguagem**: Python 3.x
+* **Framework Web**: [FastAPI](https://fastapi.tiangolo.com/) (Alta performance e documentação automática)
+* **ORM**: [SQLAlchemy](https://www.sqlalchemy.org/) (Mapeamento objeto-relacional)
+* **Banco de Dados**: [MariaDB](https://mariadb.org/)
+* **Containerização**: Docker & Docker Compose
 
-### 💪 Jogabilidade (CTF)
+## 🏗️ Arquitetura e Resiliência
 
-- **Distribuição de Exercícios**: Listagem de desafios filtrada por competição e estado de resolução.
-- **Validação de Flags**: Sistema transacional de submissão que valida a flag, o tempo e a unicidade da solução.
-- **Infraestrutura Dinâmica**: Endpoint dedicado para recuperar dados de conexão (IP/Porta) de desafios baseados em containers.
+O Interpreter possui um mecanismo nativo de **Retry Logic** para conexão com o banco de dados:
 
-### 📊 Logs Estruturados
+* Ao iniciar, o serviço tenta se conectar ao MariaDB até 10 vezes com intervalos de 3 segundos.
+* Isso evita falhas de inicialização em ambientes orquestrados (como Docker Compose) onde o banco de dados pode demorar alguns segundos extras para estar pronto para conexões.
 
-- **Sistema de logging centralizado** em `app/logger.py`.
-- **Métricas de performance** (tempo de resposta dos endpoints).
-- **Logs coloridos** para desenvolvimento e **JSON** para produção.
-- **Rastreabilidade** de erros críticos e tentativas de *bypass*.
 
----
+## 📦 Como Executar
 
-## 🚀 Como Executar
+### Via Docker (Recomendado)
 
-### Pré-requisitos
-
-- Python 3.9+
-- MariaDB/MySQL
-- Docker (opcional)
-
-### Instalação
+O Interpreter faz parte do ecossistema Lycosidae e deve ser preferencialmente executado através do arquivo `compose.yaml` na raiz do projeto principal:
 
 ```bash
-# Clone o repositório
-git clone <repository-url>
-cd Interpreter-Lycosidae
+docker-compose up -d interpreter
 
-# Instale as dependências
+```
+
+O serviço estará disponível internamente na rede Docker na porta `8000` e mapeado para a porta `8080` no host por padrão.
+
+### Localmente (Desenvolvimento)
+
+1. Instale as dependências:
+```bash
 pip install -r requirements.txt
 
-# Configure as variáveis de ambiente
-cp .env.example .env
-# IMPORTANTE: Defina a variável PASS_SALT no .env para a segurança das senhas
+```
 
-# Execute o servidor
+
+2. Configure a variável `DATABASE_URL` no seu ambiente.
+3. Execute o script de inicialização:
+```bash
 ./uvicorn.sh
 
 ```
 
-### Acessar a Documentação
 
-* **Swagger UI**: [http://localhost:8000/docs](https://www.google.com/search?q=http://localhost:8000/docs)
-* **ReDoc**: [http://localhost:8000/redoc](https://www.google.com/search?q=http://localhost:8000/redoc)
-* **Health Check**: [http://localhost:8000/](https://www.google.com/search?q=http://localhost:8000/)
 
----
+## 📖 Documentação da API
 
-## 📡 Endpoints da API
+Uma vez que o serviço esteja rodando, você pode acessar a documentação interativa (Swagger UI) fornecida pelo FastAPI no endpoint:
 
-A API foi reorganizada em prefixos por domínio.
+* **URL**: `http://localhost:8080/docs`
 
-### 🔐 Autenticação (`/auth`)
+## 🛡️ Licença
 
-* `POST /auth/register` - Registro de novo utilizador (com validação de unicidade).
-* `GET /auth/profile/{user_id}` - Consultar perfil público de um utilizador.
-* `GET /auth/users/email/{email}` - Consulta de credenciais para login.
-
-### 🏆 Competições (`/competitions`)
-
-* `GET /competitions` - Listar todas as competições.
-* `POST /competitions` - Criar nova competição.
-* `GET /competitions/{comp_id}` - Consultar detalhes de uma competição.
-* `POST /competitions/{comp_id}/join` - Entrar numa competição (valida `invite_code`).
-* `GET /competitions/{comp_id}/teams` - Listar equipes de uma competição.
-* `POST /competitions/{comp_id}/teams` - Criar nova equipe.
-* `POST /competitions/teams/{team_id}/join` - Juntar-se a uma equipe existente.
-* `GET /competitions/{comp_id}/scoreboard` - Obter o placar atualizado.
-
-### 💪 Exercícios (`/exercises`)
-
-* `POST /exercises` - Criar exercício na biblioteca global.
-* `POST /exercises/{ex_id}/link-competition/{comp_id}` - Associar exercício a uma competição.
-* `GET /exercises/competition/{comp_id}` - Listar exercícios ativos (inclui status de resolução).
-* `POST /exercises/{ex_id}/submit` - Submeter flag (valida time, competição e exercício).
-* `GET /exercises/{ex_id}/connection` - Obter dados de conexão (Host/Porta) do container.
-
----
-
-## 🏗️ Arquitetura de Execução
-
-* **Modularidade**: A aplicação é iniciada em `app/main.py`, que agrega os routers definidos em `app/routers/`.
-* **Configuração**: As variáveis de ambiente (como `DATABASE_URL` e `PASS_SALT`) controlam o comportamento sem alterar o código.
-* **Base de Dados**: Sessões geridas via `Depends(get_db)` garantindo o fecho correto das conexões.
-
----
-
-## 📊 Estrutura de Dados
-
-### Tabelas Principais
-
-| Tabela | Campos Principais | Descrição |
-| --- | --- | --- |
-| **Users** | username, email, password | Utilizadores do sistema |
-| **Competitions** | name, organizer, invite_code, status | Eventos CTF |
-| **Teams** | name, score, competition_id, creator_id | Equipes de cada competição |
-| **Exercises** | name, description, category, difficulty, flag, points, image_tag | Desafios/Problemas com tag do container Docker |
-| **Solves** | submission_content, user_id, team_id, exercise_id, points_awarded | Registro de soluções válidas |
-| **Containers** | exercise_id, container_docker_id, image_tag, port_public, connection_command | Dados de conexão da infraestrutura |
-| **Tags** | type | Tags de classificação dos exercícios |
-
-### Tabelas de Relacionamento
-
-| Tabela | Relaciona | Descrição |
-| --- | --- | --- |
-| **user_competitions** | Users ↔ Competitions | Registro de participação |
-| **user_teams** | Users ↔ Teams | Membros das equipes |
-| **exercise_competitions** | Exercises ↔ Competitions | Exercícios disponíveis no evento |
-
----
-
-## 🔧 Desenvolvimento
-
-### Estrutura do Projeto
-
-```text
-app/
-├── main.py              # Entrypoint e agregação de routers
-├── database.py          # Configuração da sessão de BD
-├── logger.py            # Logging estruturado
-├── models.py            # Modelos ORM (SQLAlchemy)
-├── schemas.py           # DTOs para validação (Pydantic)
-└── routers/             # Módulos de lógica de negócio
-    ├── auth.py          # Gestão de utilizadores
-    ├── competitions.py  # Competições, Teams e Scoreboard
-    └── exercises.py     # Desafios e Submissões
-
-```
-
-### Logs Estruturados
-
-* **Desenvolvimento**: Logs coloridos no console para leitura fácil.
-* **Produção**: Logs em JSON para ingestão por ferramentas de monitorização.
-* **Contexto**: `request_id` e tempos de execução são registrados automaticamente.
-
-### Segurança e Validação
-
-* **Pydantic Schemas**: Todas as entradas (`payloads`) são estritamente tipadas.
-* **Hashing**: As senhas nunca são armazenadas em texto simples.
-* **Validação de Negócio**: Verificações lógicas (ex: se o utilizador pertence à equipe que está a tentar pontuar) são feitas antes de qualquer escrita no banco.
-
----
-
-## 🧪 Testando a API
-
-### Exemplo de Requisição (Novos Endpoints)
-
-```bash
-# Registrar um utilizador
-curl -X POST "http://localhost:8000/auth/register" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "username": "aluno_test",
-    "email": "aluno@insper.edu.br",
-    "password": "senha_segura",
-    "phone_number": "+551199999999"
-  }'
-
-# Criar uma competição (Admin)
-curl -X POST "http://localhost:8000/competitions/" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Insper CTF 2025",
-    "organizer": "Lycosidae Team",
-    "invite_code": "INSPER2025",
-    "start_date": "2025-01-01T10:00:00",
-    "end_date": "2025-01-02T22:00:00"
-  }'
-
-```
-
-### Documentação Interativa
-
-Acesse [http://localhost:8000/docs](https://www.google.com/search?q=http://localhost:8000/docs) para testar todos os endpoints, incluindo os novos fluxos de submissão e scoreboard.
-
----
-
-## 🤝 Contribuição
-
-### Padrões de Código
-
-* **Docstrings** explicativas no início de cada função de rota.
-* **Separação de Responsabilidades**: Lógica de banco no router ou controller, modelos em `models.py`.
-* **Commits Semânticos**: Utilize prefixos como `feat:`, `fix:`, `refactor:`.
-
----
+Este projeto está licenciado sob os termos da licença incluída no arquivo `LICENSE`.

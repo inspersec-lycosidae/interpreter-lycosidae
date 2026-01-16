@@ -62,6 +62,7 @@ class Exercise(Base):
     description = Column(Text)
     difficulty = Column(String(20), nullable=False)
     flag = Column(String(256), nullable=False)
+    docker_image = Column(String(255), nullable=True)
     points = Column(Integer, nullable=False)
     is_active = Column(Boolean, default=True)
 
