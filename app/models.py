@@ -1,104 +1,119 @@
-# models.py
-from sqlalchemy import (
-    Column, Integer, String, DateTime, Date, Time, ForeignKey, CheckConstraint, UniqueConstraint, SmallInteger, Boolean
-)
+from sqlalchemy import Column, String, Integer, Boolean, ForeignKey, Table, DateTime, Text, UniqueConstraint
 from sqlalchemy.orm import relationship, declarative_base
+from sqlalchemy.sql import func
 import uuid
 
 Base = declarative_base()
 
-class User(Base):
-    __tablename__ = 'users'
+# --- TABELAS DE ASSOCIAÇÃO (Many-to-Many) ---
 
+competitions_has_users = Table(
+    'competitions_has_users', Base.metadata,
+    Column('users_id', String(36), ForeignKey('users.id', ondelete='CASCADE'), primary_key=True),
+    Column('competitions_id', String(36), ForeignKey('competitions.id', ondelete='CASCADE'), primary_key=True)
+)
+
+competitions_has_exercises = Table(
+    'competitions_has_exercises', Base.metadata,
+    Column('competitions_id', String(36), ForeignKey('competitions.id', ondelete='CASCADE'), primary_key=True),
+    Column('exercises_id', String(36), ForeignKey('exercises.id', ondelete='CASCADE'), primary_key=True)
+)
+
+exercises_has_tags = Table(
+    'exercises_has_tags', Base.metadata,
+    Column('exercises_id', String(36), ForeignKey('exercises.id', ondelete='CASCADE'), primary_key=True),
+    Column('tags_id', String(36), ForeignKey('tags.id', ondelete='CASCADE'), primary_key=True)
+)
+
+# --- MODELOS PRINCIPAIS ---
+
+class User(Base):
+    __tablename__ = "users"
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    name = Column(String(100), nullable=False)
+    surname = Column(String(100), nullable=False)
     username = Column(String(60), nullable=False, unique=True)
     email = Column(String(45), nullable=False, unique=True)
     password = Column(String(256), nullable=False)
-    phone_number = Column(String(20), nullable=True)
     is_admin = Column(Boolean, default=False)
 
-class Competition(Base):
-    __tablename__ = 'competitions'
+    competitions = relationship("Competition", secondary=competitions_has_users, back_populates="users")
+    solves = relationship("Solve", back_populates="user", cascade="all, delete-orphan")
+    attendances = relationship("Attendance", back_populates="user", cascade="all, delete-orphan")
 
+class Competition(Base):
+    __tablename__ = "competitions"
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     name = Column(String(100), nullable=False)
-    organizer = Column(String(100), nullable=False)
     invite_code = Column(String(20), nullable=False, unique=True)
     start_date = Column(DateTime, nullable=False)
     end_date = Column(DateTime, nullable=False)
-    max_teams = Column(Integer, default=20)
     status = Column(String(20), default='created')
 
+    users = relationship("User", secondary=competitions_has_users, back_populates="competitions")
+    exercises = relationship("Exercise", secondary=competitions_has_exercises, back_populates="competitions")
+    attendances = relationship("Attendance", back_populates="competition", cascade="all, delete-orphan")
+    solves = relationship("Solve", back_populates="competition", cascade="all, delete-orphan")
+
 class Exercise(Base):
-    __tablename__ = 'exercises'
-
+    __tablename__ = "exercises"
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    link = Column(String(500), nullable=False)
     name = Column(String(100), nullable=False)
-    score = Column(Integer, nullable=False)
+    description = Column(Text)
     difficulty = Column(String(20), nullable=False)
-    port = Column(Integer, nullable=False)
-class Tag(Base):
-    __tablename__ = 'tags'
+    flag = Column(String(256), nullable=False)
+    docker_image = Column(String(255), nullable=True)
+    points = Column(Integer, nullable=False)
+    is_active = Column(Boolean, default=True)
 
-    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    type = Column(String(50), nullable=False, unique=True)
-
-class Team(Base):
-    __tablename__ = 'teams'
-
-    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    name = Column(String(100), nullable=False)
-    competition = Column(String(36), ForeignKey('competitions.id'), nullable=False)
-    creator = Column(String(36), ForeignKey('users.id'), nullable=False)
-    score = Column(Integer, default=0)
-    max_members = Column(Integer, default=20)
+    tags = relationship("Tag", secondary=exercises_has_tags, back_populates="exercises")
+    competitions = relationship("Competition", secondary=competitions_has_exercises, back_populates="exercises")
+    containers = relationship("Container", back_populates="exercise", cascade="all, delete-orphan")
+    solves = relationship("Solve", back_populates="exercise", cascade="all, delete-orphan")
 
 class Container(Base):
-    __tablename__ = 'containers'
+    __tablename__ = "containers"
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    exercises_id = Column(String(36), ForeignKey("exercises.id", ondelete='CASCADE'))
+    docker_id = Column(String(64))
+    image_tag = Column(String(100), nullable=False)
+    port = Column(Integer)
+    connection = Column(String(200))
+    is_active = Column(Boolean, default=True)
+
+    exercise = relationship("Exercise", back_populates="containers")
+
+class Solve(Base):
+    __tablename__ = "solves"
+    __table_args__ = (
+        UniqueConstraint('users_id', 'exercises_id', 'competitions_id', name='_user_exercise_comp_uc'),
+    )
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    deadline = Column(DateTime, nullable=False)
+    timestamp = Column(DateTime(timezone=True), server_default=func.now())
+    content = Column(String(256))
+    users_id = Column(String(36), ForeignKey("users.id", ondelete='CASCADE'))
+    competitions_id = Column(String(36), ForeignKey("competitions.id", ondelete='CASCADE'))
+    exercises_id = Column(String(36), ForeignKey("exercises.id", ondelete='CASCADE'))
+    points_awarded = Column(Integer, nullable=False)
 
-# Relationship tables
-class UserCompetition(Base):
-    __tablename__ = 'user_competitions'
+    user = relationship("User", back_populates="solves")
+    competition = relationship("Competition", back_populates="solves")
+    exercise = relationship("Exercise", back_populates="solves")
 
+class Tag(Base):
+    __tablename__ = "tags"
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    user_id = Column(String(36), ForeignKey('users.id'), nullable=False)
-    competition_id = Column(String(36), ForeignKey('competitions.id'), nullable=False)
+    name = Column(String(50), nullable=False, unique=True)
 
-class UserTeam(Base):
-    __tablename__ = 'user_teams'
+    exercises = relationship("Exercise", secondary=exercises_has_tags, back_populates="tags")
 
+class Attendance(Base):
+    __tablename__ = "attendance"
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    user_id = Column(String(36), ForeignKey('users.id'), nullable=False)
-    team_id = Column(String(36), ForeignKey('teams.id'), nullable=False)
+    users_id = Column(String(36), ForeignKey("users.id", ondelete='CASCADE'))
+    competitions_id = Column(String(36), ForeignKey("competitions.id", ondelete='CASCADE'))
+    timestamp = Column(DateTime(timezone=True), server_default=func.now())
 
-class TeamCompetition(Base):
-    __tablename__ = 'team_competitions'
-
-    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    team_id = Column(String(36), ForeignKey('teams.id'), nullable=False)
-    competition_id = Column(String(36), ForeignKey('competitions.id'), nullable=False)
-
-class ExerciseTag(Base):
-    __tablename__ = 'exercise_tags'
-
-    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    exercise_id = Column(String(36), ForeignKey('exercises.id'), nullable=False)
-    tag_id = Column(String(36), ForeignKey('tags.id'), nullable=False)
-
-class ExerciseCompetition(Base):
-    __tablename__ = 'exercise_competitions'
-
-    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    exercise_id = Column(String(36), ForeignKey('exercises.id'), nullable=False)
-    competition_id = Column(String(36), ForeignKey('competitions.id'), nullable=False)
-
-class ContainerCompetition(Base):
-    __tablename__ = 'container_competitions'
-
-    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    container_id = Column(String(36), ForeignKey('containers.id'), nullable=False)
-    competition_id = Column(String(36), ForeignKey('competitions.id'), nullable=False)
+    user = relationship("User", back_populates="attendances")
+    competition = relationship("Competition", back_populates="attendances")

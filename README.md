@@ -1,263 +1,74 @@
-# Interpreter-Lycosidae
+# Lycosidae Interpreter API
 
-Serviço backend do projeto **Lycosidae CTF**, responsável por abstrair a comunicação entre os componentes e o banco de dados **MariaDB**, utilizando **FastAPI** e **SQLAlchemy** como ORM.
+O **Lycosidae Interpreter** é o componente central de persistência e abstração de dados da plataforma Lycosidae CTF. Ele atua como uma camada intermediária entre o **Backend (Gateway)** e o banco de dados **MariaDB**, garantindo que toda a lógica de acesso a dados seja centralizada e segura.
 
-O sistema expõe endpoints HTTPS que recebem requisições HTTP, interpretam as instruções e convertem em consultas padronizadas executadas diretamente no repositório de dados.
+Esta API foi desenhada para ser resiliente e escalável, servindo como a "fonte da verdade" para o estado das competições, usuários e exercícios.
 
-## ✨ Funcionalidades Implementadas
+## 🚀 Funcionalidades Principais
 
-### 🔧 CRUD Completo
+O Interpreter gerencia os seguintes módulos do ecossistema:
 
-- **Usuários**: Registro, autenticação, gerenciamento de perfis
-- **Competições**: Criação, gerenciamento e controle de acesso
-- **Exercícios**: Cadastro e classificação por dificuldade
-- **Tags**: Sistema de categorização flexível
-- **Times**: Formação e gerenciamento de equipes
-- **Containers**: Controle de prazos e recursos
+* **Gestão de Identidade (`auth`)**: Persistência de perfis de usuários e credenciais.
+* **Orquestração de Competições (`competitions`)**: Gerenciamento de eventos de CTF e seus participantes.
+* **Repositório de exercícios (`exercises`)**: Cadastro e metadados de exercícios técnicos.
+* **Controle de Infraestrutura (`containers`)**: Mapeamento de instâncias Docker para exercícios específicos.
+* **Pontuação em Tempo Real (`scoreboard` & `solves`)**: Registro de submissões de flags e cálculo dinâmico de ranking.
+* **Gestão de Engajamento (`attendance`)**: Registro de presença de alunos em atividades da entidade.
+* **Taxonomia (`tags`)**: Organização de conteúdos por categorias e níveis de dificuldade.
 
-### 🔗 Relacionamentos
+## 🛠️ Stack Tecnológica
 
-- **Usuário ↔ Competição**: Participação em competições
-- **Usuário ↔ Time**: Membro de equipes
-- **Time ↔ Competição**: Times em competições
-- **Exercício ↔ Tag**: Categorização de exercícios
-- **Exercício ↔ Competição**: Exercícios por competição
-- **Container ↔ Competição**: Recursos por competição
+* **Linguagem**: Python 3.x
+* **Framework Web**: [FastAPI](https://fastapi.tiangolo.com/) (Alta performance e documentação automática)
+* **ORM**: [SQLAlchemy](https://www.sqlalchemy.org/) (Mapeamento objeto-relacional)
+* **Banco de Dados**: [MariaDB](https://mariadb.org/)
+* **Containerização**: Docker & Docker Compose
 
-### 📊 Logs Estruturados
+## 🏗️ Arquitetura e Resiliência
 
-- **Sistema de logging centralizado** em `app/logger.py`
-- **Rastreabilidade completa** de operações de banco
-- **Métricas de performance** (tempo de execução)
-- **Logs coloridos** para desenvolvimento
-- **Formato JSON** para produção
+O Interpreter possui um mecanismo nativo de **Retry Logic** para conexão com o banco de dados:
 
-### 📚 Documentação Automática
+* Ao iniciar, o serviço tenta se conectar ao MariaDB até 10 vezes com intervalos de 3 segundos.
+* Isso evita falhas de inicialização em ambientes orquestrados (como Docker Compose) onde o banco de dados pode demorar alguns segundos extras para estar pronto para conexões.
 
-- **Swagger UI** disponível em `/docs`
-- **ReDoc** disponível em `/redoc`
-- **Schemas completos** com validação
-- **Exemplos de request/response**
-- **Interface interativa** para testes
 
----
+## 📦 Como Executar
 
-## 🚀 Como Executar
+### Via Docker (Recomendado)
 
-### Pré-requisitos
-
-- Python 3.8+
-- MariaDB/MySQL
-- Docker (opcional)
-
-### Instalação
+O Interpreter faz parte do ecossistema Lycosidae e deve ser preferencialmente executado através do arquivo `compose.yaml` na raiz do projeto principal:
 
 ```bash
-# Clone o repositório
-git clone <repository-url>
-cd Interpreter-Lycosidae
+docker-compose up -d interpreter
 
-# Instale as dependências
+```
+
+O serviço estará disponível internamente na rede Docker na porta `8000` e mapeado para a porta `8080` no host por padrão.
+
+### Localmente (Desenvolvimento)
+
+1. Instale as dependências:
+```bash
 pip install -r requirements.txt
 
-# Configure as variáveis de ambiente
-cp .env.example .env
-# Edite o arquivo .env com suas configurações
-
-# Execute o servidor
-./uvicorn.sh
 ```
 
-### Acessar a Documentação
 
-- **Swagger UI**: <http://localhost:8000/docs>
-- **ReDoc**: <http://localhost:8000/redoc>
-- **API Base**: <http://localhost:8000>
-
----
-
-## 📡 Endpoints da API
-
-### 👤 Usuários
-
-- `POST /route/register` - Registro de usuário
-- `GET /route/users/{user_id}` - Buscar usuário
-- `PUT /route/users/{user_id}` - Atualizar usuário
-- `DELETE /route/users/{user_id}` - Deletar usuário
-
-### 🏆 Competições
-
-- `POST /route/competitions` - Criar competição
-- `GET /route/competitions/{competition_id}` - Buscar competição
-- `GET /route/competitions/invite/{invite_code}` - Buscar por código
-- `PUT /route/competitions/{competition_id}` - Atualizar competição
-- `DELETE /route/competitions/{competition_id}` - Deletar competição
-
-### 💪 Exercícios
-
-- `POST /route/exercises` - Criar exercício
-- `GET /route/exercises/{exercise_id}` - Buscar exercício
-- `PUT /route/exercises/{exercise_id}` - Atualizar exercício
-- `DELETE /route/exercises/{exercise_id}` - Deletar exercício
-
-### 🏷️ Tags
-
-- `POST /route/tags` - Criar tag
-- `GET /route/tags/{tag_id}` - Buscar tag
-- `GET /route/tags/type/{tag_type}` - Buscar por tipo
-- `PUT /route/tags/{tag_id}` - Atualizar tag
-- `DELETE /route/tags/{tag_id}` - Deletar tag
-
-### 👥 Times
-
-- `POST /route/teams` - Criar time
-- `GET /route/teams/{team_id}` - Buscar time
-- `PUT /route/teams/{team_id}` - Atualizar time
-- `DELETE /route/teams/{team_id}` - Deletar time
-
-### 📦 Containers
-
-- `POST /route/containers` - Criar container
-- `GET /route/containers/{container_id}` - Buscar container
-- `PUT /route/containers/{container_id}` - Atualizar container
-- `DELETE /route/containers/{container_id}` - Deletar container
-
-### 🔗 Endpoints de Relacionamentos
-
-- `POST /route/user-competitions` - Relacionar usuário-competição
-- `POST /route/user-teams` - Relacionar usuário-time
-- `POST /route/team-competitions` - Relacionar time-competição
-- `POST /route/exercise-tags` - Relacionar exercício-tag
-- `DELETE /route/exercise-tags/{exercise_id}/{tag_id}` - Remover relação
-- `POST /route/exercise-competitions` - Relacionar exercício-competição
-- `POST /route/container-competitions` - Relacionar container-competição
-
----
-
-## 🏗️ Arquitetura de Execução
-
-- Orquestração feita por repositório auxiliar com script que inicializa todos os containers.
-- Arquivo `.env` centralizado em outro diretório (não deve ser duplicado).
-- Conexão ao banco controlada pela variável `DATABASE_URL`.
-
----
-
-## 📊 Estrutura de Dados
-
-### Tabelas Principais
-
-| Tabela | Campos | Descrição |
-|--------|--------|-----------|
-| **Users** | username, email, password, phone_number | Usuários do sistema |
-| **Competitions** | name, organizer, invite_code, start_date, end_date | Competições CTF |
-| **Exercises** | link, name, score, difficulty | Exercícios/Desafios |
-| **Tags** | type, id | Categorização de exercícios |
-| **Teams** | name, competition, creator, score | Equipes participantes |
-| **Containers** | id, deadline | Recursos com prazo |
-
-### Tabelas de Relacionamento
-
-| Tabela | Relaciona | Descrição |
-|--------|-----------|-----------|
-| **user_competitions** | Users ↔ Competitions | Participação em competições |
-| **user_teams** | Users ↔ Teams | Membros de equipes |
-| **team_competitions** | Teams ↔ Competitions | Times em competições |
-| **exercise_tags** | Exercises ↔ Tags | Categorização de exercícios |
-| **exercise_competitions** | Exercises ↔ Competitions | Exercícios por competição |
-| **container_competitions** | Containers ↔ Competitions | Recursos por competição |
-
----
-
-## 🔧 Desenvolvimento
-
-### Estrutura do Projeto
-
-```text
-app/
-├── main.py              # Aplicação principal FastAPI
-├── database.py          # Configuração do banco de dados
-├── models.py            # Modelos SQLAlchemy
-├── schemas.py           # DTOs Pydantic
-├── routers.py           # Endpoints da API
-├── dbutils_mysql.py     # Funções de banco de dados
-└── logger.py            # Sistema de logging estruturado
-```
-
-### Logs Estruturados
-
-- **Desenvolvimento**: Logs coloridos no console
-- **Produção**: Logs em formato JSON
-- **Rastreabilidade**: IDs de transação e contexto
-- **Performance**: Tempo de execução de operações
-- **Erros**: Stack traces completos com contexto
-
-### Validação de Dados
-
-- **Pydantic schemas** para validação de entrada
-- **Validação automática** de tipos e formatos
-- **Mensagens de erro** claras e específicas
-- **Sanitização** de dados de entrada
-
-### Segurança
-
-- **Hash de senhas** com SHA-256 + salt
-- **Validação de relacionamentos** antes de criação
-- **Controle de duplicatas** em relacionamentos
-- **Tratamento de erros** padronizado
-
----
-
-## 🧪 Testando a API
-
-### Exemplo de Requisição
-
+2. Configure a variável `DATABASE_URL` no seu ambiente.
+3. Execute o script de inicialização:
 ```bash
-# Registrar um usuário
-curl -X POST "http://localhost:8000/route/register" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "username": "testuser",
-    "email": "test@example.com",
-    "password": "password123",
-    "phone_number": "+1234567890"
-  }'
+./uvicorn.sh
 
-# Criar uma competição
-curl -X POST "http://localhost:8000/route/competitions" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "CTF 2024",
-    "organizer": "Lycosidae Team",
-    "invite_code": "CTF2024",
-    "start_date": "2024-01-01T00:00:00",
-    "end_date": "2024-01-31T23:59:59"
-  }'
 ```
 
-### Documentação Interativa
 
-Acesse <http://localhost:8000/docs> para testar todos os endpoints diretamente no navegador.
 
----
+## 📖 Documentação da API
 
-## 🤝 Contribuição
+Uma vez que o serviço esteja rodando, você pode acessar a documentação interativa (Swagger UI) fornecida pelo FastAPI no endpoint:
 
-### Padrões de Código
+* **URL**: `http://localhost:8080/docs`
 
-- **Docstrings** no formato `"""Explicação"""` no início de cada função
-- **Logs estruturados** para todas as operações de banco
-- **Validação de dados** com Pydantic schemas
-- **Tratamento de erros** padronizado
-- **Comentários limpos** sem código desnecessário
+## 🛡️ Licença
 
-### Estrutura de Commits
-
-```text
-feat: adiciona nova funcionalidade
-fix: corrige bug
-docs: atualiza documentação
-refactor: refatora código
-test: adiciona testes
-```
-
----
+Este projeto está licenciado sob os termos da licença incluída no arquivo `LICENSE`.
