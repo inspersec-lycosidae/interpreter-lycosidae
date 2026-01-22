@@ -2,6 +2,9 @@ from typing import Optional
 from pydantic import BaseModel
 
 class ContainerReadDTO(BaseModel):
+    """
+    Modelo de leitura de container.
+    """
     id: str
     exercises_id: str
     docker_id: str
@@ -14,7 +17,7 @@ class ContainerReadDTO(BaseModel):
 
 class ContainerCreateDTO(BaseModel):
     """
-    Usado pelo Orchester para reportar o status do container criado.
+    Modelo para recebimento de dados de criação de container.
     """
     docker_id: str
     image_tag: str
@@ -25,17 +28,9 @@ class ContainerCreateDTO(BaseModel):
 
 class ContainerInternalDTO(BaseModel):
     """
-    Usado pelo Orchester para reportar o status do container criado.
+    Modelo de transferência interna para o Orchester.
     """
-
     docker_id: str
     image_tag: str
     port: int
     connection: str
-
-class ContainerRequestDTO(BaseModel):
-    """
-    O que o Frontend envia para o Backend.
-    """
-    exercises_id: str
-    competitions_id: str
