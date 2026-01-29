@@ -13,6 +13,38 @@ logger = get_structured_logger("scoreboard_router")
 router = APIRouter(prefix="/scoreboard", tags=["scoreboard"])
 
 
+@router.get("/global", response_model=List[ScoreboardEntryDTO])
+async def get_global_scoreboard(db: Session = Depends(get_db)):
+    """
+    Calcula o placar global somando todos os pontos de exercícios 
+    resolvidos por cada usuário no sistema.
+    """
+    try:
+        total_score_expr = func.coalesce(func.sum(Solve.points_awarded), 0)
+
+        results = (db.query(User.id, User.username, total_score_expr.label("total_score"))
+            .outerjoin(Solve, Solve.users_id == User.id)
+            .group_by(User.id)
+            .order_by(total_score_expr.desc())
+            .all()
+        )
+
+        scoreboard = []
+        for index, (user_id, username, total_score) in enumerate(results):
+            scoreboard.append(
+                ScoreboardEntryDTO(
+                    rank=index + 1,
+                    username=username,
+                    score=int(total_score),
+                    users_id=user_id
+                )
+            )
+        
+        return scoreboard
+    except Exception as e:
+        logger.error(f"Erro ao gerar ranking global: {e}")
+        raise HTTPException(status_code=500, detail="Erro interno ao processar ranking global")
+
 @router.get("/{comp_id}", response_model=List[ScoreboardEntryDTO])
 async def get_scoreboard(comp_id: str, db: Session = Depends(get_db)):
     """
