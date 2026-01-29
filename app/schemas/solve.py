@@ -17,6 +17,7 @@ class SolveReadDTO(BaseModel):
     timestamp: datetime
     users_id: str
     exercises_id: str
+    competitions_id: str
     points_awarded: int
 
     class Config:
